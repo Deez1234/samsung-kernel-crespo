@@ -193,32 +193,40 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					if (ts->flags & SYNAPTICS_SWAP_XY)
 						swap(pos[f][0], pos[f][1]);
 				}
-				if (z) {
-					input_report_abs(ts->input_dev, ABS_X, pos[0][0]);
-					input_report_abs(ts->input_dev, ABS_Y, pos[0][1]);
-				}
-				input_report_abs(ts->input_dev, ABS_PRESSURE, z);
-				input_report_abs(ts->input_dev, ABS_TOOL_WIDTH, w);
-				input_report_key(ts->input_dev, BTN_TOUCH, finger);
+                // if (z) {
+                //  input_report_abs(ts->input_dev, ABS_X, pos[0][0]);
+                //  input_report_abs(ts->input_dev, ABS_Y, pos[0][1]);
+                // }
+                // input_report_abs(ts->input_dev, ABS_PRESSURE, z);
+                // input_report_abs(ts->input_dev, ABS_TOOL_WIDTH, w);
+                // input_report_key(ts->input_dev, BTN_TOUCH, finger);
 				finger2_pressed = finger > 1 && finger != 7;
-				input_report_key(ts->input_dev, BTN_2, finger2_pressed);
+                // input_report_key(ts->input_dev, BTN_2, finger2_pressed);
 				if (finger2_pressed) {
-					input_report_abs(ts->input_dev, ABS_HAT0X, pos[1][0]);
-					input_report_abs(ts->input_dev, ABS_HAT0Y, pos[1][1]);
+                    // input_report_abs(ts->input_dev, ABS_HAT0X, pos[1][0]);
+                    // input_report_abs(ts->input_dev, ABS_HAT0Y, pos[1][1]);
 				}
 
 				if (!finger)
 					z = 0;
-				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, z);
-				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+                // input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, z);
+                // input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+                input_report_abs(ts->input_dev, ABS_MT_SLOT, 1);
+                input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, 1);
+
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, pos[0][0]);
 				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, pos[0][1]);
+				input_report_abs(ts->input_dev, ABS_MT_PRESSURE, z);
 				input_mt_sync(ts->input_dev);
 				if (finger2_pressed) {
-					input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, z);
-					input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+                    // input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, z);
+                    // input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+                    input_report_abs(ts->input_dev, ABS_MT_SLOT, 2);
+                    input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, 2);
+
 					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, pos[1][0]);
 					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, pos[1][1]);
+					input_report_abs(ts->input_dev, ABS_MT_PRESSURE, z);
 					input_mt_sync(ts->input_dev);
 				} else if (ts->reported_finger_count > 1) {
 					input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
@@ -461,11 +469,20 @@ static int synaptics_ts_probe(
 		goto err_input_dev_alloc_failed;
 	}
 	ts->input_dev->name = "synaptics-rmi-touchscreen";
+	__set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
+	/*
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
 	set_bit(BTN_TOUCH, ts->input_dev->keybit);
 	set_bit(BTN_2, ts->input_dev->keybit);
+	*/
 	set_bit(EV_ABS, ts->input_dev->evbit);
+	set_bit(ABS_MT_POSITION_X, ts->input_dev->absbit);
+    set_bit(ABS_MT_POSITION_Y, ts->input_dev->absbit);
+    set_bit(ABS_MT_PRESSURE, ts->input_dev->absbit);
+    set_bit(ABS_MT_SLOT, ts->input_dev->absbit);
+    set_bit(ABS_MT_TRACKING_ID, ts->input_dev->absbit);
+
 	inactive_area_left = inactive_area_left * max_x / 0x10000;
 	inactive_area_right = inactive_area_right * max_x / 0x10000;
 	inactive_area_top = inactive_area_top * max_y / 0x10000;
@@ -508,7 +525,11 @@ static int synaptics_ts_probe(
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, -inactive_area_left, max_x + inactive_area_right, fuzz_x, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, -inactive_area_top, max_y + inactive_area_bottom, fuzz_y, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, fuzz_p, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 15, fuzz_w, 0);
+	//input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 15, fuzz_w, 0);
+    input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, 255, 0, 0);
+    input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, 5, 0, 0);
+    input_set_abs_params(ts->input_dev, ABS_MT_SLOT, 0, 5, 0, 0);
+	
 	/* ts->input_dev->name = ts->keypad_info->name; */
 	ret = input_register_device(ts->input_dev);
 	if (ret) {
